@@ -1,0 +1,7 @@
+services:
+  nginx:
+    image: nginx:latest
+    environment:
+      - MINIO_HOST=minio.example.com
+      - MINIO_CONSOLE_PORT=9001
+      - PORT=8080
