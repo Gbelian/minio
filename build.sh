@@ -7,9 +7,13 @@ export HOST="0.0.0.0"
 export PORT=9000
 export CONSOLE_PORT=9090
 
+# Créer un réseau Docker pour les conteneurs
+docker network create minio-network
+
 # Lancer le serveur Minio
 docker run -d \
   --name minio-server \
+  --network minio-network \
   -p $PORT:$PORT \
   -p $CONSOLE_PORT:$CONSOLE_PORT \
   -e MINIO_ROOT_USER=$MINIO_ROOT_USER \
@@ -21,15 +25,20 @@ docker run -d \
   docker.io/minio/minio:latest \
   minio server /data --address $HOST:$PORT --console-address $HOST:$CONSOLE_PORT
 
+# Attendre quelques secondes pour que le serveur Minio démarre
+sleep 10
+
 # Configuration des variables d'environnement pour la console Minio
 export MINIO_CONSOLE_PORT=10000
 
-# Lancer la console Minio
+# Construire l'image Docker pour la console Minio
 docker build -t minio-console .
+
+# Lancer la console Minio
 docker run -d \
   --name minio-console \
-  -p $MINIO_CONSOLE_PORT:$MINIO_CONSOLE_PORT \
-  -e PORT=$MINIO_CONSOLE_PORT \
-  -e MINIO_HOST=$HOST \
+  --network minio-network \
+  -p $MINIO_CONSOLE_PORT:80 \
+  -e MINIO_HOST=minio-server \
   -e MINIO_CONSOLE_PORT=$CONSOLE_PORT \
   minio-console
