@@ -1,0 +1,2 @@
+# minio
+mino deploement
