@@ -1,44 +1,25 @@
 #!/bin/bash
 
-# Configuration des variables d'environnement pour le serveur Minio
-export MINIO_ROOT_USER=$(openssl rand -base64 12)
-export MINIO_ROOT_PASSWORD=$(openssl rand -base64 12)
-export HOST="0.0.0.0"
-export PORT=9000
-export CONSOLE_PORT=9090
+# Télécharger la dernière version de MinIO
+MINIO_VERSION=$(curl -s https://dl.minio.io/server/minio/RELEASE.txt)
+MINIO_DOWNLOAD_URL="https://dl.minio.io/server/minio/release/${MINIO_VERSION}/minio.linux-amd64"
 
-# Créer un réseau Docker pour les conteneurs
-docker network create minio-network
+curl -LO ${MINIO_DOWNLOAD_URL}
 
-# Lancer le serveur Minio
-docker run -d \
-  --name minio-server \
-  --network minio-network \
-  -p $PORT:$PORT \
-  -p $CONSOLE_PORT:$CONSOLE_PORT \
-  -e MINIO_ROOT_USER=$MINIO_ROOT_USER \
-  -e MINIO_ROOT_PASSWORD=$MINIO_ROOT_PASSWORD \
-  -e HOST=$HOST \
-  -e PORT=$PORT \
-  -e CONSOLE_PORT=$CONSOLE_PORT \
-  -v minio-data:/data \
-  docker.io/minio/minio:latest \
-  minio server /data --address $HOST:$PORT --console-address $HOST:$CONSOLE_PORT
+# Extraire l'archive téléchargée
+tar -xzvf minio.linux-amd64
 
-# Attendre quelques secondes pour que le serveur Minio démarre
-sleep 10
+# Déplacer le binaire MinIO vers un emplacement permanent
+sudo mv minio /usr/local/bin
 
-# Configuration des variables d'environnement pour la console Minio
-export MINIO_CONSOLE_PORT=10000
+# Créer un répertoire de données pour MinIO
+sudo mkdir -p /data/minio
 
-# Construire l'image Docker pour la console Minio
-docker build -t minio-console .
+# Définir les permissions pour le répertoire de données
+sudo chown -R 1000:1000 /data/minio
 
-# Lancer la console Minio
-docker run -d \
-  --name minio-console \
-  --network minio-network \
-  -p $MINIO_CONSOLE_PORT:80 \
-  -e MINIO_HOST=minio-server \
-  -e MINIO_CONSOLE_PORT=$CONSOLE_PORT \
-  minio-console
+# Initialiser MinIO avec un accès complet
+sudo /usr/local/bin/minio server --config-file /data/minio/config.json --data-dir /data/minio
+
+# (Facultatif) Définir un alias pour lancer MinIO plus facilement
+echo "alias minio='sudo /usr/local/bin/minio server --config-file /data/minio/config.json --data-dir /data/minio'" >> ~/.bashrc
