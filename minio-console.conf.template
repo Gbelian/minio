@@ -1,5 +1,5 @@
 upstream minio_console {
-    server minio.example.com:9001;
+    server https://minio-0a1z.onrender.com:9001;  
 }
 
 server {
